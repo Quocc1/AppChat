@@ -1,3 +1,4 @@
+const Qs = require('qs')
 const path = require('path');
 const http = require('http');
 const express = require('express');
@@ -23,10 +24,13 @@ const botName = 'Bot';
 
 // Run when client connects
 io.on('connection', async (socket) => {
-  
-  const { connection, channel } = await connectRabbitmq()
+  let connection = null
+  let channel = null
 
-  socket.on('joinRoom', ({ username, room }) => {
+  socket.on('joinRoom', async ({ username, room }) => {
+    result  = await connectRabbitmq()
+    connection = await result['connection']
+    channel = await result['channel']
     const user = userJoin(socket.id, username, room);
 
     socket.join(user.room);
@@ -46,8 +50,8 @@ io.on('connection', async (socket) => {
   // Listen for chatMessage
   socket.on('chatMessage', async (message) => {
     const user = await getCurrentUser(socket.id);
-    await produceMessage(channel, message);
-    await consumeMessage(channel, user);
+    await produceMessage(channel, message, user);
+    await consumeMessage(channel, user.room);
   });
 
   // Runs when client disconnects
@@ -95,26 +99,34 @@ async function disconnectRabbitmq(connection, channel) {
   }
 }
 
-async function produceMessage(channel, message) {
+async function produceMessage(channel, message, user) {
   try {
     const queue = 'sending-message-queue';
+    const fullMessage = `${user.username}: ${message}`;
     await channel.assertQueue(queue, { durable: true });
-    channel.sendToQueue(queue, Buffer.from(message));
+    channel.sendToQueue(queue, Buffer.from(fullMessage));
   } catch (err) {
     console.warn(err);
   } 
 }
 
-async function consumeMessage(channel, user) {
+async function consumeMessage(channel, room) {
   try {
     const queue = 'receiving-message-queue';
     await channel.assertQueue(queue, { durable: true });
-
+    
     await channel.consume(
       queue,
       (message) => {
-        string_message = message.content.toString();
-        io.to(user.room).emit('message', formatMessage(user.username, string_message));
+        const fullMessage = message.content.toString();
+        const messageParts = fullMessage.split(': ');
+
+        if (messageParts.length === 2) {
+          const username = messageParts[0];
+          const messageContent = messageParts[1];
+
+          io.to(room).emit('message', formatMessage(username, messageContent));
+        }
       channel.ack(message)
     },
       );
