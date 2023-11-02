@@ -44,13 +44,8 @@ io.on('connection', (socket) => {
   // Listen for chatMessage
   socket.on('chatMessage', async (message) => {
     const user = await getCurrentUser(socket.id);
-    console.log(user)
-
     await produceMessage(message);
-
     await consumeMessage(user);
-
-    // io.to(user.room).emit("message", formatMessage(user.username, message));
   });
 
   // Runs when client disconnects
@@ -84,9 +79,11 @@ async function produceMessage(message) {
     const queue = 'sending-message-queue';
     await channel.assertQueue(queue, { durable: true });
     channel.sendToQueue(queue, Buffer.from(message));
-    await channel.close();
   } catch (err) {
     console.warn(err);
+  } finally {
+    await channel.close();
+    await connection.close();
   }
 }
 
@@ -107,5 +104,8 @@ async function consumeMessage(user) {
       );
   } catch (err) {
     console.warn(err);
+  } finally {
+    await channel.close();
+    await connection.close();
   }
 }
