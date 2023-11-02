@@ -22,8 +22,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 const botName = 'Bot';
 
 // Run when client connects
-io.on('connection', (socket) => {
-  // console.log(io.of('/').adapter);
+io.on('connection', async (socket) => {
+  
+  const { connection, channel } = await connectRabbitmq()
+
   socket.on('joinRoom', ({ username, room }) => {
     const user = userJoin(socket.id, username, room);
 
@@ -44,12 +46,14 @@ io.on('connection', (socket) => {
   // Listen for chatMessage
   socket.on('chatMessage', async (message) => {
     const user = await getCurrentUser(socket.id);
-    await produceMessage(message);
-    await consumeMessage(user);
+    await produceMessage(channel, message);
+    await consumeMessage(channel, user);
   });
 
   // Runs when client disconnects
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
+    await disconnectRabbitmq(connection, channel)
+    
     const user = userLeave(socket.id);
 
     if (user) {
@@ -72,25 +76,37 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // RabbitMQ functions
-async function produceMessage(message) {
+async function connectRabbitmq() {
   try {
     const connection = await amqplib.connect('amqps://qqgwwzsh:s9lguwP2ROUN2_8x2GZQ1I1bevC2iYWj@octopus.rmq3.cloudamqp.com/qqgwwzsh');
     const channel = await connection.createChannel();
+    return { connection, channel }
+  } catch (err) {
+    console.warn(err);
+  }
+}
+
+async function disconnectRabbitmq(connection, channel) {
+  try {
+    await channel.close();
+    await connection.close();
+  } catch (err) {
+    console.warn(err);
+  }
+}
+
+async function produceMessage(channel, message) {
+  try {
     const queue = 'sending-message-queue';
     await channel.assertQueue(queue, { durable: true });
     channel.sendToQueue(queue, Buffer.from(message));
   } catch (err) {
     console.warn(err);
-  } finally {
-    await channel.close();
-    await connection.close();
-  }
+  } 
 }
 
-async function consumeMessage(user) {
+async function consumeMessage(channel, user) {
   try {
-    const connection = await amqplib.connect('amqps://qqgwwzsh:s9lguwP2ROUN2_8x2GZQ1I1bevC2iYWj@octopus.rmq3.cloudamqp.com/qqgwwzsh');
-    const channel = await connection.createChannel();
     const queue = 'receiving-message-queue';
     await channel.assertQueue(queue, { durable: true });
 
@@ -104,8 +120,5 @@ async function consumeMessage(user) {
       );
   } catch (err) {
     console.warn(err);
-  } finally {
-    await channel.close();
-    await connection.close();
-  }
+  } 
 }
