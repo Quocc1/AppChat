@@ -122,7 +122,7 @@ async function produceMessage(channel, message, user) {
 }
 
 // Hàm consume message từ Rabbitmq
-async function consumeMessage(channel, room) {
+async function consumeMessage(channel) {
   try {
     const queue = 'receiving-message-queue';
     await channel.assertQueue(queue, { durable: true }); // Tạo một 'receiving-message-queue' queue 
