@@ -1,9 +1,10 @@
 const moment = require('moment');
 
-function formatMessage(username, text) {
+function formatMessage(room, username, content) {
   return {
+    room,
     username,
-    text,
+    content,
     time: moment().format('h:mm a')
   };
 }

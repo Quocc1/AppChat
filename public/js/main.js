@@ -60,7 +60,7 @@ function outputMessage(message) {
   div.appendChild(p);
   const para = document.createElement('p');
   para.classList.add('text');
-  para.innerText = message.text;
+  para.innerText = message.content;
   div.appendChild(para);
   document.querySelector('.chat-messages').appendChild(div);
 }

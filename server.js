@@ -102,9 +102,10 @@ async function disconnectRabbitmq(connection, channel) {
 async function produceMessage(channel, message, user) {
   try {
     const queue = 'sending-message-queue';
-    const fullMessage = `${user.username}: ${message}`;
+    const fullMessage = formatMessage(user.room, user.username, message);
+    // const fullMessage = `${user.username}: ${message}`;
     await channel.assertQueue(queue, { durable: true });
-    channel.sendToQueue(queue, Buffer.from(fullMessage));
+    channel.sendToQueue(queue, Buffer.from(JSON.stringify(fullMessage)));
   } catch (err) {
     console.warn(err);
   } 
@@ -118,15 +119,13 @@ async function consumeMessage(channel, room) {
     await channel.consume(
       queue,
       (message) => {
-        const fullMessage = message.content.toString();
-        const messageParts = fullMessage.split(': ');
+        const messageObject = JSON.parse(message.content.toString());
 
-        if (messageParts.length === 2) {
-          const username = messageParts[0];
-          const messageContent = messageParts[1];
+        const room = messageObject.room;
+        const username = messageObject.username;
+        const content = messageObject.content;
 
-          io.to(room).emit('message', formatMessage(username, messageContent));
-        }
+        io.to(room).emit('message', formatMessage(room, username, content));
       channel.ack(message)
     },
       );
