@@ -1,4 +1,3 @@
-const Qs = require('qs')
 const path = require('path');
 const http = require('http');
 const express = require('express');
@@ -24,13 +23,13 @@ const botName = 'Bot';
 
 // Run when client connects
 io.on('connection', async (socket) => {
-  let connection = null
-  let channel = null
+  let connection = null;
+  let channel = null;
 
   socket.on('joinRoom', async ({ username, room }) => {
-    result  = await connectRabbitmq()
-    connection = await result['connection']
-    channel = await result['channel']
+    result = await connectRabbitmq();
+    connection = await result['connection'];
+    channel = await result['channel'];
     const user = userJoin(socket.id, username, room);
 
     socket.join(user.room);
@@ -56,8 +55,8 @@ io.on('connection', async (socket) => {
 
   // Runs when client disconnects
   socket.on('disconnect', async () => {
-    await disconnectRabbitmq(connection, channel)
-    
+    await disconnectRabbitmq(connection, channel);
+
     const user = userLeave(socket.id);
 
     if (user) {
@@ -82,9 +81,11 @@ server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 // RabbitMQ functions
 async function connectRabbitmq() {
   try {
-    const connection = await amqplib.connect('amqps://qqgwwzsh:s9lguwP2ROUN2_8x2GZQ1I1bevC2iYWj@octopus.rmq3.cloudamqp.com/qqgwwzsh');
+    const connection = await amqplib.connect(
+      'amqps://qqgwwzsh:s9lguwP2ROUN2_8x2GZQ1I1bevC2iYWj@octopus.rmq3.cloudamqp.com/qqgwwzsh'
+    );
     const channel = await connection.createChannel();
-    return { connection, channel }
+    return { connection, channel };
   } catch (err) {
     console.warn(err);
   }
@@ -103,33 +104,29 @@ async function produceMessage(channel, message, user) {
   try {
     const queue = 'sending-message-queue';
     const fullMessage = formatMessage(user.room, user.username, message);
-    // const fullMessage = `${user.username}: ${message}`;
     await channel.assertQueue(queue, { durable: true });
     channel.sendToQueue(queue, Buffer.from(JSON.stringify(fullMessage)));
   } catch (err) {
     console.warn(err);
-  } 
+  }
 }
 
 async function consumeMessage(channel, room) {
   try {
     const queue = 'receiving-message-queue';
     await channel.assertQueue(queue, { durable: true });
-    
-    await channel.consume(
-      queue,
-      (message) => {
-        const messageObject = JSON.parse(message.content.toString());
 
-        const room = messageObject.room;
-        const username = messageObject.username;
-        const content = messageObject.content;
+    await channel.consume(queue, (message) => {
+      const messageObject = JSON.parse(message.content.toString());
 
-        io.to(room).emit('message', formatMessage(room, username, content));
-      channel.ack(message)
-    },
-      );
+      const room = messageObject.room;
+      const username = messageObject.username;
+      const content = messageObject.content;
+
+      io.to(room).emit('message', formatMessage(room, username, content));
+      channel.ack(message);
+    });
   } catch (err) {
     console.warn(err);
-  } 
+  }
 }
