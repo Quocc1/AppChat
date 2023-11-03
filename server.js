@@ -55,7 +55,7 @@ io.on('connection', async (socket) => {
   socket.on('chatMessage', async (message) => {
     const user = await getCurrentUser(socket.id); // Lấy thông tin client
     await produceMessage(channel, message, user); // Kết nối đến Rabbitmq và produce message
-    await consumeMessage(channel, user.room); // Kết nối đến Rabbitmq và consume message
+    await consumeMessage(channel); // Kết nối đến Rabbitmq và consume message
   });
 
   // Lắng nghe khi có client ngắt kết nối
