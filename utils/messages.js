@@ -1,11 +1,11 @@
-const moment = require('moment');
+const moment = require('moment'); // Import thư viện 'moment' để làm việc với thời gian
 
 function formatMessage(room, username, content) {
   return {
-    room,
-    username,
-    content,
-    time: moment().format('h:mm a')
+    room, // Tên phòng
+    username, // Tên người gửi
+    content, // Nội dung tin nhắn
+    time: moment().format('h:mm a') // Thời gian gửi
   };
 }
 

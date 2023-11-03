@@ -3,28 +3,27 @@ const chatMessages = document.querySelector('.chat-messages');
 const roomName = document.getElementById('room-name');
 const userList = document.getElementById('users');
 
-// Get username and room from URL
+// Lấy username và room từ URL
 const { username, room } = Qs.parse(location.search, {
   ignoreQueryPrefix: true,
 });
 
 const socket = io();
 
-// Join chatroom
+// Tham gia phòng
 socket.emit('joinRoom', { username, room });
 
-// Get room and users
+// Lấy thông tin phòng và users
 socket.on('roomUsers', ({ room, users }) => {
   outputRoomName(room);
   outputUsers(users);
 });
 
-// Message from server
+// Lắng nghe message từ server
 socket.on('message', (message) => {
-  console.log(message);
   outputMessage(message);
 
-  // Scroll down
+  // Cuộn xuống tin nhắn mới nhất
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
@@ -32,7 +31,7 @@ socket.on('message', (message) => {
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
 
-  // Get message text
+  // Lấy nội dung message
   let message = e.target.elements.message.value;
 
   message = message.trim();
@@ -41,7 +40,7 @@ chatForm.addEventListener('submit', (e) => {
     return false;
   }
 
-  // Emit message to server
+  // Emit message đến server
   socket.emit('chatMessage', message);
 
   // Clear input
@@ -49,7 +48,7 @@ chatForm.addEventListener('submit', (e) => {
   e.target.elements.message.focus();
 });
 
-// Output message to DOM
+// Cập nhật message lên DOM
 function outputMessage(message) {
   const div = document.createElement('div');
   div.classList.add('message');
@@ -65,12 +64,12 @@ function outputMessage(message) {
   document.querySelector('.chat-messages').appendChild(div);
 }
 
-// Add room name to DOM
+// Cập nhật tên phòng lên DOM
 function outputRoomName(room) {
   roomName.innerText = room;
 }
 
-// Add users to DOM
+// Cập nhật thông tin client lên DOM
 function outputUsers(users) {
   userList.innerHTML = '';
   users.forEach((user) => {
@@ -80,7 +79,7 @@ function outputUsers(users) {
   });
 }
 
-//Prompt the user before leave chat room
+// Hiện thông báo để xác nhận khi người dùng muốn rời phòng
 document.getElementById('leave-btn').addEventListener('click', () => {
   const leaveRoom = confirm('Bạn có chắc muốn rời phòng?');
   if (leaveRoom) {

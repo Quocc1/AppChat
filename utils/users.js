@@ -1,6 +1,6 @@
 const users = [];
 
-// Join user to chat
+// Lưu client khi tham gia vào phòng
 function userJoin(id, username, room) {
   const user = { id, username, room };
 
@@ -9,12 +9,12 @@ function userJoin(id, username, room) {
   return user;
 }
 
-// Get current user
+// Lấy client theo id
 function getCurrentUser(id) {
   return users.find(user => user.id === id);
 }
 
-// User leaves chat
+// Xóa client khi rời phòng
 function userLeave(id) {
   const index = users.findIndex(user => user.id === id);
 
@@ -23,7 +23,7 @@ function userLeave(id) {
   }
 }
 
-// Get room users
+// Lấy thông tin của mọi client có trong phòng
 function getRoomUsers(room) {
   return users.filter(user => user.room === room);
 }
